@@ -43,18 +43,23 @@ app.use((req, res) => {
     res.status(404).json({ message: `Route ${req.originalUrl} not found` });
 });
 
-// ── Database Connection & Server Start ──────────────────────
-const PORT = process.env.PORT || 5000;
+// ── Database Connection ──────────────────────────────────────
 const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('✅ MongoDB connected successfully');
-        app.listen(PORT, () => {
-            console.log(`🚀 RentifyAI server running on http://localhost:${PORT}`);
-        });
     })
     .catch((err) => {
         console.error('❌ MongoDB connection error:', err.message);
-        process.exit(1);
     });
+
+// ── Server Start / Export ────────────────────────────────────
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`🚀 RentifyAI server running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
