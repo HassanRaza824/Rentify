@@ -11,6 +11,7 @@ const Register = () => {
         email: '',
         password: '',
         confirmPassword: '',
+        role: 'guest',
     });
 
     const { register } = useAuth();
@@ -23,7 +24,7 @@ const Register = () => {
         }
 
         try {
-            await register(formData.name, formData.email, formData.password);
+            await register(formData.name, formData.email, formData.password, formData.role);
             toast.success('Account created successfully!');
             navigate('/');
         } catch (error) {
@@ -108,6 +109,26 @@ const Register = () => {
                                 value={formData.confirmPassword}
                                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                             />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider ml-1">I want to...</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, role: 'guest' })}
+                                className={`py-3 rounded-xl border-2 font-bold transition-all ${formData.role === 'guest' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                            >
+                                Rent a Place
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, role: 'host' })}
+                                className={`py-3 rounded-xl border-2 font-bold transition-all ${formData.role === 'host' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                            >
+                                List my Place
+                            </button>
                         </div>
                     </div>
 

@@ -12,7 +12,7 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.registerUser = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     try {
         const userExists = await User.findOne({ email });
@@ -25,6 +25,7 @@ exports.registerUser = async (req, res) => {
             name,
             email,
             password,
+            role: role || 'guest',
         });
 
         if (user) {
@@ -33,6 +34,7 @@ exports.registerUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 isAdmin: user.isAdmin,
+                role: user.role,
                 token: generateToken(user._id),
             });
         } else {
@@ -58,6 +60,7 @@ exports.loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 isAdmin: user.isAdmin,
+                role: user.role,
                 token: generateToken(user._id),
             });
         } else {
@@ -80,6 +83,7 @@ exports.getUserProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             isAdmin: user.isAdmin,
+            role: user.role,
             preferences: user.preferences,
             savedProperties: user.savedProperties,
         });
@@ -109,6 +113,7 @@ exports.updateUserProfile = async (req, res) => {
             name: updatedUser.name,
             email: updatedUser.email,
             isAdmin: updatedUser.isAdmin,
+            role: updatedUser.role,
             token: generateToken(updatedUser._id),
         });
     } else {

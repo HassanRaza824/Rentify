@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useProperties } from '../context/PropertyContext';
 import { toast } from 'react-hot-toast';
-import { Home, MapPin, DollarSign, Image, Upload, ChevronDown } from 'lucide-react';
+import { Home, MapPin, DollarSign, Image, Upload, ChevronDown, Navigation } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -45,7 +46,15 @@ const LocationPicker = ({ position, setPosition }) => {
 
 const CreateProperty = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const { createProperty } = useProperties();
+
+    React.useEffect(() => {
+        if (user && user.role !== 'host') {
+            toast.error('Only hosts can list properties');
+            navigate('/dashboard');
+        }
+    }, [user, navigate]);
     const [loading, setLoading] = useState(false);
     const [previewImages, setPreviewImages] = useState([]);
     const [position, setPosition] = useState({ lat: 24.8607, lng: 67.0011 }); // Default to Karachi
@@ -72,6 +81,40 @@ const CreateProperty = () => {
         } catch (err) {
             console.error('Geocoding error:', err);
         }
+    };
+
+    const reverseGeocode = async (lat, lng) => {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (data && data.address) {
+                const city = data.address.city || data.address.town || data.address.village || data.address.suburb || '';
+                setFormData(prev => ({ ...prev, city }));
+            }
+        } catch (err) {
+            console.error('Reverse geocoding error:', err);
+        }
+    };
+
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            return toast.error("Geolocation is not supported by your browser");
+        }
+
+        const toastId = toast.loading("Fetching your current location...");
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const newPos = { lat: latitude, lng: longitude };
+                setPosition(newPos);
+                await reverseGeocode(latitude, longitude);
+                toast.success("Location updated!", { id: toastId });
+            },
+            (err) => {
+                toast.error("Unable to retrieve location", { id: toastId });
+            },
+            { enableHighAccuracy: true }
+        );
     };
 
     const handleChange = (e) => {
@@ -196,9 +239,18 @@ const CreateProperty = () => {
 
                         {/* Location */}
                         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-rose-500" /> Location
-                            </h3>
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-rose-500" /> Location
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={handleGetCurrentLocation}
+                                    className="text-xs font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-all flex items-center gap-2"
+                                >
+                                    <Navigation className="w-3 h-3" /> My Current Location
+                                </button>
+                            </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-slate-700 ml-1">City</label>
                                 <input type="text" name="city" required value={formData.city} onChange={handleChange} onBlur={handleCityBlur}

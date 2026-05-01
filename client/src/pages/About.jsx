@@ -1,211 +1,363 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
     Sparkles, Brain, Shield, Map, MessageSquare, Star,
-    ArrowRight, Users, Home, TrendingUp, CheckCircle2
+    ArrowRight, Users, Home, TrendingUp, CheckCircle2,
+    Target, Zap, Globe, Award
 } from 'lucide-react';
 
-const fadeUp = {
-    initial: { opacity: 0, y: 30 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true },
-    transition: { duration: 0.6 },
+// --- Custom Components ---
+
+const Counter = ({ value, label, icon }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true });
+    const [count, setCount] = useState(0);
+    const target = parseInt(value.replace(/[^0-9]/g, ''));
+
+    useEffect(() => {
+        if (isInView) {
+            let start = 0;
+            const duration = 2000;
+            const increment = target / (duration / 16);
+            
+            const timer = setInterval(() => {
+                start += increment;
+                if (start >= target) {
+                    setCount(target);
+                    clearInterval(timer);
+                } else {
+                    setCount(Math.floor(start));
+                }
+            }, 16);
+            return () => clearInterval(timer);
+        }
+    }, [isInView, target]);
+
+    const suffix = value.replace(/[0-9]/g, '');
+
+    return (
+        <motion.div 
+            ref={ref}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center p-6 bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 hover:border-blue-500/50 transition-colors group"
+        >
+            <div className="p-4 bg-blue-500/10 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
+                {icon}
+            </div>
+            <div className="text-4xl font-black text-white mb-1">
+                {count.toLocaleString()}{suffix}
+            </div>
+            <div className="text-blue-200/60 text-sm font-medium uppercase tracking-wider text-center">
+                {label}
+            </div>
+        </motion.div>
+    );
 };
 
+const FeatureCard = ({ icon, title, desc, delay }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay }}
+        whileHover={{ y: -10 }}
+        className="group relative p-8 rounded-[2.5rem] bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all duration-500"
+    >
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem]" />
+        <div className="relative z-10">
+            <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500 text-blue-500">
+                {icon}
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
+            <p className="text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">
+                {desc}
+            </p>
+        </div>
+    </motion.div>
+);
+
 const About = () => {
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end end"]
+    });
+
+    const y = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
+    const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+    const scaleHero = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
+
     const stats = [
-        { value: '12,000+', label: 'Properties Listed', icon: <Home className="w-6 h-6 text-blue-500" /> },
-        { value: '98%', label: 'Match Accuracy', icon: <TrendingUp className="w-6 h-6 text-emerald-500" /> },
-        { value: '45,000+', label: 'Happy Renters', icon: <Users className="w-6 h-6 text-indigo-500" /> },
-        { value: '4.9 ★', label: 'Average Rating', icon: <Star className="w-6 h-6 text-amber-500" /> },
+        { value: '12,000+', label: 'Properties Listed', icon: <Home className="w-6 h-6" /> },
+        { value: '98%', label: 'Match Accuracy', icon: <TrendingUp className="w-6 h-6" /> },
+        { value: '45,000+', label: 'Happy Renters', icon: <Users className="w-6 h-6" /> },
+        { value: '4.9', label: 'Average Rating', icon: <Star className="w-6 h-6" /> },
     ];
 
     const features = [
         {
-            icon: <Brain className="w-7 h-7 text-blue-600" />,
-            bg: 'bg-blue-50 border-blue-100',
+            icon: <Brain className="w-8 h-8" />,
             title: 'AI Recommendation Engine',
-            desc: 'Our proprietary weighted scoring algorithm analyzes your budget, preferred location, property type, and desired amenities to surface the most relevant listings — ranked just for you.',
+            desc: 'Our proprietary weighted scoring algorithm analyzes your budget, preferred location, and lifestyle to surface listings ranked just for you.',
         },
         {
-            icon: <Map className="w-7 h-7 text-emerald-600" />,
-            bg: 'bg-emerald-50 border-emerald-100',
-            title: 'Interactive Map & Nearby Places',
-            desc: 'Explore properties visually with our interactive map. Instantly see nearby schools, hospitals, restaurants, shopping centers and their distances from any listing.',
+            icon: <Map className="w-8 h-8" />,
+            title: 'Interactive Spatial Search',
+            desc: 'Explore properties with a neural map overlay that visualizes commute times, neighborhood vibes, and essential local amenities.',
         },
         {
-            icon: <MessageSquare className="w-7 h-7 text-indigo-600" />,
-            bg: 'bg-indigo-50 border-indigo-100',
-            title: 'Natural Language Chatbot',
-            desc: 'No complicated forms needed. Simply tell our AI assistant what you\'re looking for — "Find a 2-bedroom apartment in Karachi under 50,000" — and it instantly finds matches.',
+            icon: <MessageSquare className="w-8 h-8" />,
+            title: 'Semantic Assistance',
+            desc: 'No more rigid filters. Just type what you need: "A cozy studio near the park for under $2k" and let our AI do the heavy lifting.',
         },
         {
-            icon: <Shield className="w-7 h-7 text-rose-600" />,
-            bg: 'bg-rose-50 border-rose-100',
-            title: 'Verified & Secure',
-            desc: 'Every listing is moderated by our admin team. All communications are end-to-end secured with JWT authentication, and owner identities are verified before approval.',
+            icon: <Shield className="w-8 h-8" />,
+            title: 'Verified Trust Protocol',
+            desc: 'Every listing undergoes a 12-point verification process. We ensure what you see is exactly what you get, with zero exceptions.',
         },
     ];
 
     const howItWorks = [
-        { step: '01', title: 'Set Your Preferences', desc: 'Tell us your budget, favorite city, property type, and must-have amenities through your personalized dashboard.' },
-        { step: '02', title: 'AI Finds Your Matches', desc: 'Our algorithm scores every listing on the platform and surfaces the top matches ranked specifically for your preferences.' },
-        { step: '03', title: 'Explore on the Map', desc: 'Browse matched properties visually. Click any listing to view its location, interior photos, and nearby points of interest.' },
-        { step: '04', title: 'Contact & Move In', desc: 'Reach out directly to verified property owners with a single click. We also send an email notification instantly.' },
-    ];
-
-    const team = [
-        { name: 'Hassan Dhillon', role: 'Founder & CEO', img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Hassan&backgroundColor=b6e3f4' },
-        { name: 'Sarah Ahmed', role: 'Head of AI', img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=c0aede' },
-        { name: 'James Park', role: 'Lead Engineer', img: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James&backgroundColor=d1d4f9' },
+        { 
+            step: '01', 
+            title: 'Onboarding', 
+            desc: 'Define your lifestyle preferences, not just your budget.',
+            icon: <Target className="w-6 h-6 text-blue-400" />
+        },
+        { 
+            step: '02', 
+            title: 'AI Curation', 
+            desc: 'Our engine processes millions of data points to find your match.',
+            icon: <Zap className="w-6 h-6 text-amber-400" />
+        },
+        { 
+            step: '03', 
+            title: 'Virtual Tours', 
+            desc: 'Experience properties in high-fidelity before you even visit.',
+            icon: <Globe className="w-6 h-6 text-emerald-400" />
+        },
+        { 
+            step: '04', 
+            title: 'Secure Booking', 
+            desc: 'Finalize your lease with end-to-end encrypted documentation.',
+            icon: <Award className="w-6 h-6 text-rose-400" />
+        },
     ];
 
     return (
-        <div className="bg-white overflow-hidden">
+        <div ref={containerRef} className="bg-slate-950 text-slate-200 overflow-hidden font-sans">
+            
+            {/* --- Hero Section --- */}
+            <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20 px-6">
+                {/* Dynamic Background */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(37,99,235,0.1),transparent_50%)]" />
+                    <motion.div 
+                        animate={{ 
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 90, 0],
+                        }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px]" 
+                    />
+                    <motion.div 
+                        animate={{ 
+                            scale: [1, 1.3, 1],
+                            rotate: [0, -90, 0],
+                        }}
+                        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                        className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[120px]" 
+                    />
+                </div>
 
-            {/* ── Hero ────────────────────────────── */}
-            <section className="relative bg-slate-900 text-white py-32 px-6 text-center overflow-hidden">
-                {/* decorative blobs */}
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
+                <motion.div 
+                    style={{ y, opacity: opacityHero, scale: scaleHero }}
+                    className="relative z-10 max-w-6xl mx-auto text-center"
+                >
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-bold mb-8"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        Next-Gen Rental Platform
+                    </motion.div>
+                    
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-6xl md:text-8xl font-black tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500"
+                    >
+                        The Future of <br />
+                        Living is <span className="text-blue-500">Personal</span>.
+                    </motion.h1>
 
-                <motion.div {...fadeUp} className="relative z-10 max-w-4xl mx-auto space-y-6">
-                    <span className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 text-blue-300 text-sm font-bold px-5 py-2 rounded-full">
-                        <Sparkles className="w-4 h-4" /> About RentifyAI
-                    </span>
-                    <h1 className="text-5xl md:text-7xl font-extrabold leading-tight">
-                        The Smarter Way <br />
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-                            to Find Home
-                        </span>
-                    </h1>
-                    <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                        RentifyAI is an AI-powered rental platform that cuts through the noise — learning what you love and connecting you with properties that genuinely match your life.
-                    </p>
-                    <Link to="/properties" className="inline-flex items-center gap-2 btn-primary mt-4 !px-10 !py-4 text-lg">
-                        Browse Properties <ArrowRight className="w-5 h-5" />
-                    </Link>
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed"
+                    >
+                        RentifyAI leverages deep learning to understand your lifestyle, 
+                        eliminating the stress of home searching with high-precision matches.
+                    </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex flex-wrap items-center justify-center gap-6"
+                    >
+                        <Link 
+                            to="/properties" 
+                            className="px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-lg transition-all shadow-[0_0_40px_rgba(37,99,235,0.3)] hover:shadow-[0_0_60px_rgba(37,99,235,0.5)] flex items-center gap-3"
+                        >
+                            Explore Marketplace <ArrowRight className="w-5 h-5" />
+                        </Link>
+                        <button className="px-10 py-5 bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 rounded-2xl font-bold text-lg transition-all">
+                            How it Works
+                        </button>
+                    </motion.div>
                 </motion.div>
             </section>
 
-            {/* ── Stats ───────────────────────────── */}
-            <section className="py-16 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-                    {stats.map((s, i) => (
-                        <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.1 }} className="text-center space-y-2">
-                            <div className="flex justify-center mb-2 opacity-80">{s.icon}</div>
-                            <p className="text-4xl font-extrabold">{s.value}</p>
-                            <p className="text-blue-100 text-sm font-medium">{s.label}</p>
-                        </motion.div>
+            {/* --- Stats Section --- */}
+            <section className="py-20 px-6 relative z-10 -mt-20">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {stats.map((stat, i) => (
+                        <Counter key={i} {...stat} />
                     ))}
                 </div>
             </section>
 
-            {/* ── Mission ─────────────────────────── */}
-            <section className="py-28 px-6">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                    <motion.div {...fadeUp} className="space-y-6">
-                        <span className="text-blue-600 font-bold uppercase tracking-widest text-sm">Our Mission</span>
-                        <h2 className="text-4xl font-extrabold text-slate-900 leading-tight">
-                            We believe finding a home should feel exciting, not exhausting.
+            {/* --- Mission & Image --- */}
+            <section className="py-32 px-6">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="space-y-8"
+                    >
+                        <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                            We aren't just a platform. <br />
+                            <span className="text-blue-500">We're your search partner.</span>
                         </h2>
-                        <p className="text-slate-500 text-lg leading-relaxed">
-                            The traditional rental search is broken — overwhelming listings, irrelevant results, and little transparency. We built RentifyAI to fix that by combining modern artificial intelligence with an intuitive, human-first design.
+                        <p className="text-lg text-slate-400 leading-relaxed">
+                            Traditional real estate is static. We make it dynamic. By analyzing thousands of neighborhood variables and property details, we provide a personalized score for every home based on your unique profile.
                         </p>
-                        <ul className="space-y-3">
-                            {['Zero irrelevant listings', 'AI that learns your taste', 'Transparent pricing', 'Direct owner communication'].map(item => (
-                                <li key={item} className="flex items-center gap-3 text-slate-700 font-medium">
-                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" /> {item}
-                                </li>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {[
+                                "No more ghost listings",
+                                "Hyper-local data insights",
+                                "AI-powered negotiation",
+                                "Instant owner connection"
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-3 text-slate-300">
+                                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
+                                        <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                                    </div>
+                                    <span className="font-medium">{item}</span>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </motion.div>
-                    <motion.div {...fadeUp} transition={{ delay: 0.2 }} className="relative">
-                        <div className="rounded-[3rem] overflow-hidden shadow-2xl">
-                            <img
-                                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
-                                alt="Beautiful property"
-                                className="w-full h-[450px] object-cover"
+
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        className="relative group"
+                    >
+                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[3rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                        <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 aspect-square lg:aspect-video shadow-2xl">
+                            <img 
+                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1200" 
+                                alt="Modern Interior" 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                             />
                         </div>
-                        <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex items-center gap-4">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="font-extrabold text-slate-900 text-2xl">98%</p>
-                                <p className="text-slate-400 text-xs font-semibold">AI Match Accuracy</p>
+                        <div className="absolute -bottom-8 -left-8 p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl hidden md:block">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-500 rounded-2xl">
+                                    <Zap className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-white">2.5s</div>
+                                    <div className="text-sm text-slate-400">Avg. Matching Speed</div>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
                 </div>
             </section>
 
-            {/* ── Key Features ────────────────────── */}
-            <section className="py-24 px-6 bg-slate-50">
+            {/* --- Features Grid --- */}
+            <section className="py-32 px-6 bg-slate-900/50 relative">
                 <div className="max-w-7xl mx-auto">
-                    <motion.div {...fadeUp} className="text-center mb-16 space-y-3">
-                        <span className="text-blue-600 font-bold uppercase tracking-widest text-sm">Platform Features</span>
-                        <h2 className="text-4xl font-extrabold text-slate-900">Everything you need, nothing you don't</h2>
-                        <p className="text-slate-500 max-w-xl mx-auto">Built with renters in mind at every step of the journey.</p>
-                    </motion.div>
+                    <div className="text-center mb-20">
+                        <motion.span 
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            className="text-blue-500 font-bold uppercase tracking-[0.2em] text-sm mb-4 block"
+                        >
+                            Core Capabilities
+                        </motion.span>
+                        <motion.h2 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            className="text-4xl md:text-6xl font-bold text-white mb-6"
+                        >
+                            Designed for the modern renter.
+                        </motion.h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                            We've re-engineered every step of the rental process to be smarter, 
+                            faster, and more transparent.
+                        </p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {features.map((f, i) => (
-                            <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.1 }}
-                                className={`p-8 rounded-[2.5rem] border ${f.bg} space-y-4 hover:shadow-lg transition-all`}
-                            >
-                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-white">
-                                    {f.icon}
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-900">{f.title}</h3>
-                                <p className="text-slate-600 leading-relaxed">{f.desc}</p>
-                            </motion.div>
+                            <FeatureCard key={i} {...f} delay={i * 0.1} />
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ── How it Works ────────────────────── */}
-            <section className="py-28 px-6">
+            {/* --- How It Works --- */}
+            <section className="py-32 px-6">
                 <div className="max-w-7xl mx-auto">
-                    <motion.div {...fadeUp} className="text-center mb-16 space-y-3">
-                        <span className="text-indigo-600 font-bold uppercase tracking-widest text-sm">Simple Process</span>
-                        <h2 className="text-4xl font-extrabold text-slate-900">From search to keys in 4 steps</h2>
-                    </motion.div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
+                        <div className="max-w-2xl">
+                            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">Simple, yet powerful.</h2>
+                            <p className="text-slate-400 text-lg">Four steps to your next chapter. No paperwork, no stress.</p>
+                        </div>
+                        <div className="h-px bg-slate-800 flex-grow mx-12 hidden lg:block" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                         {howItWorks.map((step, i) => (
-                            <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.1 }} className="relative text-center space-y-4 group">
-                                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center text-white text-2xl font-extrabold shadow-xl shadow-blue-100 group-hover:scale-110 transition-transform">
+                            <motion.div 
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className="relative"
+                            >
+                                <div className="text-8xl font-black text-slate-900 absolute -top-10 -left-4 pointer-events-none">
                                     {step.step}
                                 </div>
-                                {i < howItWorks.length - 1 && (
-                                    <div className="hidden lg:block absolute top-10 left-[calc(50%+2.5rem)] w-[calc(100%-5rem)] h-0.5 bg-gradient-to-r from-blue-200 to-indigo-200" />
-                                )}
-                                <h3 className="text-lg font-bold text-slate-900">{step.title}</h3>
-                                <p className="text-slate-500 text-sm leading-relaxed">{step.desc}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Team ────────────────────────────── */}
-            <section className="py-24 px-6 bg-slate-900 text-white">
-                <div className="max-w-5xl mx-auto text-center space-y-16">
-                    <motion.div {...fadeUp} className="space-y-3">
-                        <span className="text-blue-400 font-bold uppercase tracking-widest text-sm">Our Team</span>
-                        <h2 className="text-4xl font-extrabold">Built by people who love technology & homes</h2>
-                    </motion.div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                        {team.map((member, i) => (
-                            <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.15 }}
-                                className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 space-y-4 hover:bg-white/10 transition-all"
-                            >
-                                <img src={member.img} alt={member.name} className="w-24 h-24 rounded-3xl mx-auto bg-slate-700" />
-                                <div>
-                                    <h4 className="font-bold text-xl">{member.name}</h4>
-                                    <p className="text-blue-300 text-sm font-medium">{member.role}</p>
+                                <div className="relative z-10 pt-8">
+                                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl w-fit mb-6">
+                                        {step.icon}
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-4">{step.title}</h3>
+                                    <p className="text-slate-400 leading-relaxed">{step.desc}</p>
                                 </div>
                             </motion.div>
                         ))}
@@ -213,21 +365,46 @@ const About = () => {
                 </div>
             </section>
 
-            {/* ── CTA ─────────────────────────────── */}
-            <section className="py-28 px-6 text-center bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 text-white">
-                <motion.div {...fadeUp} className="max-w-3xl mx-auto space-y-8">
-                    <h2 className="text-5xl font-extrabold leading-tight">Ready to find your perfect home?</h2>
-                    <p className="text-blue-100 text-xl">Join over 45,000 renters who found their dream properties using our AI-powered platform.</p>
-                    <div className="flex flex-wrap gap-4 justify-center">
-                        <Link to="/register" className="bg-white text-blue-700 font-bold px-10 py-4 rounded-2xl hover:bg-blue-50 transition-all shadow-xl text-lg">
-                            Get Started Free
-                        </Link>
-                        <Link to="/properties" className="border-2 border-white/40 text-white font-bold px-10 py-4 rounded-2xl hover:bg-white/10 transition-all text-lg flex items-center gap-2">
-                            Browse Properties <ArrowRight className="w-5 h-5" />
-                        </Link>
-                    </div>
-                </motion.div>
+
+            {/* --- CTA Section --- */}
+
+            <section className="py-32 px-6">
+                <div className="max-w-7xl mx-auto">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="relative overflow-hidden bg-blue-600 rounded-[3rem] p-12 md:p-24 text-center"
+                    >
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
+                        <div className="relative z-10 max-w-3xl mx-auto">
+                            <h2 className="text-4xl md:text-7xl font-black text-white mb-8 tracking-tighter">
+                                Start your journey <br /> with RentifyAI.
+                            </h2>
+                            <p className="text-xl text-blue-100 mb-12 font-medium">
+                                Join 45,000+ others who have found their perfect space through our AI-powered curation.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-6">
+                                <Link 
+                                    to="/register" 
+                                    className="px-12 py-6 bg-white text-blue-600 rounded-2xl font-black text-xl hover:bg-slate-100 transition-all shadow-2xl"
+                                >
+                                    Get Started Free
+                                </Link>
+                                <Link 
+                                    to="/properties" 
+                                    className="px-12 py-6 bg-blue-700 text-white border border-blue-500 rounded-2xl font-black text-xl hover:bg-blue-800 transition-all"
+                                >
+                                    View Listings
+                                </Link>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
             </section>
+
+            <footer className="py-12 text-center text-slate-500 text-sm border-t border-white/5">
+                © {new Date().getFullYear()} RentifyAI. Built with passion for better living.
+            </footer>
 
         </div>
     );

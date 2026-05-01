@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Search, Heart, User, LogOut, ChevronDown, Building2, Hotel, Warehouse, Store, Plus, Menu, X, Info } from 'lucide-react';
+import { Home, Search, Heart, User, LogOut, ChevronDown, Building2, Hotel, Warehouse, Store, Plus, Menu, X, Info, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -92,12 +92,21 @@ const Navbar = () => {
                         <Link to="/properties" className="text-slate-600 hover:text-blue-600 transition-colors" title="Search Properties">
                             <Search className="w-5 h-5" />
                         </Link>
-                        <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 transition-colors" title="Saved Properties">
-                            <Heart className="w-5 h-5" />
-                        </Link>
-                        <Link to="/properties/create" className="btn-primary flex items-center gap-1.5 !px-4 !py-2 text-sm shadow-sm" title="Become a Host">
-                            <Plus className="w-4 h-4" /> Become a Host
-                        </Link>
+                        {user.role === 'guest' && (
+                            <Link to="/dashboard" className="text-slate-600 hover:text-blue-600 transition-colors" title="Saved Properties">
+                                <Heart className="w-5 h-5" />
+                            </Link>
+                        )}
+                        {user.role === 'host' && (
+                            <Link to="/properties/create" className="btn-primary flex items-center gap-1.5 !px-4 !py-2 text-sm shadow-sm" title="Add Listing">
+                                <Plus className="w-4 h-4" /> Add Listing
+                            </Link>
+                        )}
+                        {user.role === 'guest' && (
+                            <Link to="/dashboard" className="bg-slate-100 text-slate-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all flex items-center gap-2">
+                                <LayoutDashboard className="w-4 h-4" /> Dashboard
+                            </Link>
+                        )}
                         <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                             <Link to="/dashboard" title="Profile Dashboard" className="w-9 h-9 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all">
                                 {user.name?.charAt(0)?.toUpperCase()}
@@ -177,9 +186,15 @@ const Navbar = () => {
 
                             {user ? (
                                 <div className="space-y-4">
-                                     <Link to="/properties/create" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition-all">
-                                         <Plus className="w-6 h-6" /> Become a Host
-                                     </Link>
+                                     {user.role === 'host' ? (
+                                         <Link to="/properties/create" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 active:scale-95 transition-all">
+                                             <Plus className="w-6 h-6" /> Add Listing
+                                         </Link>
+                                     ) : (
+                                         <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full p-4 rounded-2xl bg-slate-100 text-slate-900 shadow-sm active:scale-95 transition-all font-bold">
+                                             <LayoutDashboard className="w-6 h-6" /> Dashboard
+                                         </Link>
+                                     )}
                                      <button onClick={handleLogout} className="flex items-center justify-center gap-2 w-full p-4 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
                                          <LogOut className="w-6 h-6" /> Log Out
                                      </button>

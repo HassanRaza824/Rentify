@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    role: {
+        type: String,
+        enum: ['guest', 'host'],
+        default: 'guest',
+    },
 }, { timestamps: true });
 
 // Hash password before saving

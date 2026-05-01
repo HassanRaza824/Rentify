@@ -92,6 +92,34 @@ export const PropertyProvider = ({ children }) => {
         }
     };
 
+    const fetchMyBookings = async () => {
+        try {
+            const { data } = await api.get('/bookings/mybookings');
+            return data;
+        } catch (error) {
+            return [];
+        }
+    };
+
+    const fetchReceivedBookings = async () => {
+        try {
+            const { data } = await api.get('/bookings/received');
+            return data;
+        } catch (error) {
+            return [];
+        }
+    };
+
+    const updateBookingStatus = async (id, status) => {
+        try {
+            const { data } = await api.put(`/bookings/${id}/status`, { status });
+            return data;
+        } catch (error) {
+            console.error('Error updating booking status:', error);
+            throw error;
+        }
+    };
+
     return (
         <PropertyContext.Provider value={{
             properties,
@@ -102,7 +130,10 @@ export const PropertyProvider = ({ children }) => {
             createProperty,
             fetchMyListings,
             fetchMyRentals,
-            deleteProperty
+            deleteProperty,
+            fetchMyBookings,
+            fetchReceivedBookings,
+            updateBookingStatus
         }}>
             {children}
         </PropertyContext.Provider>

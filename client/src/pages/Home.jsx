@@ -62,7 +62,7 @@ const Home = () => {
                 <div className="flex justify-between items-end">
                     <div className="space-y-2">
                         <h2 className="text-4xl font-black text-slate-900 tracking-tight">Recent Submissions</h2>
-                        <p className="text-slate-500 font-medium text-lg">Explore the latest hand-picked stays around the globe.</p>
+                        <p className="text-slate-500 font-medium text-lg">Explore the latest curated stays around the globe.</p>
                     </div>
                     <Link to="/properties" className="hidden md:flex items-center gap-2 text-rose-500 font-black uppercase text-xs tracking-widest hover:gap-3 transition-all">
                         Explore all <ArrowRight className="w-4 h-4" />
@@ -90,13 +90,13 @@ const Home = () => {
                         <div className="flex flex-col lg:flex-row gap-20 items-center">
                             <div className="lg:w-1/3 space-y-8 text-white">
                                 <div className="inline-flex items-center gap-3 bg-rose-500/20 text-rose-400 px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest border border-rose-500/20">
-                                    <Sparkles className="w-4 h-4" /> AI Recommendations
+                                    <Sparkles className="w-4 h-4" /> Elite Recommendations
                                 </div>
                                 <h2 className="text-5xl font-black leading-[1.1] tracking-tighter">
-                                    Hand-picked <br /> <span className="text-slate-500 underline decoration-rose-500 decoration-4">Just For You</span>.
+                                    Specially Selected <br /> <span className="text-slate-500 underline decoration-rose-500 decoration-4">Just For You</span>.
                                 </h2>
                                 <p className="text-slate-400 text-lg font-medium leading-relaxed">
-                                    Our AI analysis of your preferences suggests these homes are the perfect match for your lifestyle.
+                                    Our analysis of your preferences suggests these homes are the perfect match for your lifestyle.
                                 </p>
                                 <button className="bg-white text-slate-900 px-10 py-5 rounded-[2rem] font-black text-sm uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-[0.98]">
                                     See your full list

@@ -21,6 +21,8 @@ app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/bookings', require('./routes/bookingRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 
 // ── Health Check ────────────────────────────────────────────
 app.get('/', (req, res) => {

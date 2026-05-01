@@ -14,6 +14,7 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import About from './pages/About';
 import CreateProperty from './pages/CreateProperty';
+import PaymentSuccess from './pages/PaymentSuccess';
 
 // Components
 import Navbar from './components/Navbar';
@@ -39,6 +40,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
               </Routes>
             </main>
             <Footer />

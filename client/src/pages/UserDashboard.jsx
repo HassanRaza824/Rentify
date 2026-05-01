@@ -9,10 +9,12 @@ import PropertyCard from '../components/PropertyCard';
 const UserDashboard = () => {
     const navigate = useNavigate();
     const { user, updateProfile } = useAuth();
-    const { properties, recommendations, fetchProperties, fetchRecommendations, fetchMyListings, fetchMyRentals, deleteProperty } = useProperties();
-    const [activeTab, setActiveTab] = useState('profile');
+    const { properties, recommendations, fetchProperties, fetchRecommendations, fetchMyListings, fetchMyRentals, deleteProperty, fetchMyBookings, fetchReceivedBookings, updateBookingStatus } = useProperties();
+    const [activeTab, setActiveTab] = useState(user?.role === 'host' ? 'overview' : 'profile');
     const [myListings, setMyListings] = useState([]);
     const [myRentals, setMyRentals] = useState([]);
+    const [myBookings, setMyBookings] = useState([]);
+    const [receivedBookings, setReceivedBookings] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -27,17 +29,29 @@ const UserDashboard = () => {
     });
 
     useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        if (query.get('payment') === 'cancelled') {
+            toast.error('Payment cancelled.');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
+
+    useEffect(() => {
         const loadData = async () => {
             setLoadingData(true);
             if (user) {
                 fetchRecommendations(user._id);
                 fetchProperties({}); // Ensure all properties are available for filtering
-                const [listings, rentals] = await Promise.all([
+                const [listings, rentals, bookings, received] = await Promise.all([
                     fetchMyListings(),
-                    fetchMyRentals()
+                    fetchMyRentals(),
+                    fetchMyBookings(),
+                    fetchReceivedBookings()
                 ]);
                 setMyListings(listings);
                 setMyRentals(rentals);
+                setMyBookings(bookings);
+                setReceivedBookings(received);
             }
             setLoadingData(false);
         };
@@ -77,6 +91,18 @@ const UserDashboard = () => {
         }
     };
 
+    const handleStatusUpdate = async (id, status) => {
+        try {
+            await updateBookingStatus(id, status);
+            toast.success(`Booking ${status} successfully`);
+            // Refresh bookings
+            const received = await fetchReceivedBookings();
+            setReceivedBookings(received);
+        } catch (error) {
+            toast.error('Failed to update status');
+        }
+    };
+
     return (
         <div className="bg-slate-50 min-h-screen pt-10 pb-28 md:pb-20 px-6">
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-10">
@@ -95,12 +121,14 @@ const UserDashboard = () => {
 
                     <nav className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-2">
                         {[
+                            { id: 'overview', label: 'Dashboard', icon: <Home className="w-5 h-5" />, role: 'host' },
                             { id: 'profile', label: 'My Profile', icon: <User className="w-5 h-5" /> },
-                            { id: 'preferences', label: 'AI Preferences', icon: <Settings className="w-5 h-5" /> },
-                            { id: 'listings', label: 'My Listings', icon: <ListIcon className="w-5 h-5" /> },
-                            { id: 'rentals', label: 'My Rentals', icon: <CheckCircle2 className="w-5 h-5" /> },
-                            { id: 'saved', label: 'Saved Properties', icon: <Heart className="w-5 h-5" /> },
-                        ].map(tab => (
+                            { id: 'preferences', label: 'Preferences', icon: <Settings className="w-5 h-5" />, role: 'guest' },
+                            { id: 'listings', label: 'My Listings', icon: <ListIcon className="w-5 h-5" />, role: 'host' },
+                            { id: 'received', label: 'Bookings', icon: <Bell className="w-5 h-5" />, role: 'host' },
+                            { id: 'bookings', label: 'My Bookings', icon: <CheckCircle2 className="w-5 h-5" />, role: 'guest' },
+                            { id: 'saved', label: 'Wishlist', icon: <Heart className="w-5 h-5" />, role: 'guest' },
+                        ].filter(tab => !tab.role || tab.role === user?.role).map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
@@ -118,6 +146,61 @@ const UserDashboard = () => {
 
                 {/* Content Area */}
                 <main className="lg:col-span-3 space-y-10">
+                    {activeTab === 'overview' && user?.role === 'host' && (
+                        <div className="space-y-10">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
+                                        <Home className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-slate-500 font-medium">Total Listings</p>
+                                    <h4 className="text-3xl font-black text-slate-900 mt-1">{myListings.length}</h4>
+                                </div>
+                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                                        <CheckCircle2 className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-slate-500 font-medium">Active Bookings</p>
+                                    <h4 className="text-3xl font-black text-slate-900 mt-1">{receivedBookings.filter(b => b.status === 'confirmed').length}</h4>
+                                </div>
+                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-4">
+                                        <Bell className="w-6 h-6" />
+                                    </div>
+                                    <p className="text-slate-500 font-medium">Pending Requests</p>
+                                    <h4 className="text-3xl font-black text-slate-900 mt-1">{receivedBookings.filter(b => b.status === 'pending').length}</h4>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-6">Recent Activity</h3>
+                                <div className="space-y-4">
+                                    {receivedBookings.slice(0, 3).map(b => (
+                                        <div key={b._id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 font-bold border border-slate-100">
+                                                {b.guestId?.name?.charAt(0)}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <p className="text-sm font-bold text-slate-800">
+                                                    {b.guestId?.name} <span className="font-normal text-slate-500">requested to book</span> {b.propertyId?.title}
+                                                </p>
+                                                <p className="text-xs text-slate-400">{new Date(b.createdAt).toLocaleDateString()}</p>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                                                b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-600' : 
+                                                b.status === 'cancelled' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                                            }`}>
+                                                {b.status}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {receivedBookings.length === 0 && (
+                                        <p className="text-center text-slate-400 py-10">No recent activity to show.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {activeTab === 'profile' && (
                         <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-10">
                             <h2 className="text-3xl font-bold text-slate-900">Manage Profile</h2>
@@ -267,22 +350,112 @@ const UserDashboard = () => {
                         </div>
                     )}
 
-                    {activeTab === 'rentals' && (
+                    {activeTab === 'bookings' && (
                         <div className="space-y-8">
-                            <h2 className="text-3xl font-bold text-slate-900">My Rentals</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {myRentals.length > 0 ? (
-                                    myRentals.map(p => (
-                                        <div key={p._id} className="relative">
-                                            <PropertyCard property={p} />
-                                            <div className="absolute top-4 right-4 z-20 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">
-                                                ACTIVE RENTAL
+                            <h2 className="text-3xl font-bold text-slate-900">My Bookings</h2>
+                            <div className="grid grid-cols-1 gap-6">
+                                {myBookings.length > 0 ? (
+                                    myBookings.map(b => (
+                                        <div key={b._id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex flex-col md:flex-row gap-6 items-center">
+                                            <div className="w-full md:w-40 h-28 rounded-2xl overflow-hidden flex-shrink-0">
+                                                <img src={b.propertyId?.images?.[0]?.url || 'https://via.placeholder.com/200'} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-grow space-y-1">
+                                                <h4 className="text-xl font-bold text-slate-900">{b.propertyId?.title}</h4>
+                                                <p className="text-slate-500 flex items-center gap-1">
+                                                    <MapPin className="w-4 h-4" /> {b.propertyId?.city}
+                                                </p>
+                                                <p className="text-sm font-medium text-slate-400">
+                                                    {new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <div className="text-right space-y-2 w-full md:w-auto">
+                                                <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider inline-block ${
+                                                    b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-600' : 
+                                                    b.status === 'cancelled' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                                                }`}>
+                                                    {b.status}
+                                                </div>
+                                                <p className="text-2xl font-black text-slate-900">${b.totalPrice}</p>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="md:col-span-2 bg-white p-20 rounded-[2.5rem] border border-dashed border-slate-200 text-center text-slate-400 font-medium">
-                                        You haven't rented any properties yet.
+                                    <div className="bg-white p-20 rounded-[2.5rem] border border-dashed border-slate-200 text-center text-slate-400 font-medium">
+                                        You haven't booked any properties yet.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'received' && (
+                        <div className="space-y-8">
+                            <h2 className="text-3xl font-bold text-slate-900">Received Bookings</h2>
+                            <div className="grid grid-cols-1 gap-6">
+                                {receivedBookings.length > 0 ? (
+                                    receivedBookings.map(b => (
+                                        <div key={b._id} className="bg-white p-8 rounded-[2rem] border border-slate-100 flex flex-col md:flex-row gap-8 items-center shadow-sm">
+                                            <div className="w-full md:w-48 h-32 rounded-2xl overflow-hidden flex-shrink-0 shadow-inner">
+                                                <img src={b.propertyId?.images?.[0]?.url || 'https://via.placeholder.com/200'} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-grow space-y-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                        b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-600' : 
+                                                        b.status === 'cancelled' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                                                    }`}>
+                                                        {b.status}
+                                                    </span>
+                                                    <span className="text-slate-300">|</span>
+                                                    <p className="text-xs font-bold text-slate-400">Booking ID: #{b._id.slice(-6).toUpperCase()}</p>
+                                                </div>
+                                                <h4 className="text-2xl font-extrabold text-slate-900 leading-tight">{b.propertyId?.title}</h4>
+                                                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                        <User className="w-4 h-4 text-blue-500" />
+                                                        <span className="font-bold">{b.guestId?.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                        <DollarSign className="w-4 h-4 text-emerald-500" />
+                                                        <span className="font-black text-slate-900">${b.totalPrice}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-500 text-sm">
+                                                        {new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-row md:flex-col gap-3 w-full md:w-auto">
+                                                {b.status === 'pending' && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(b._id, 'confirmed')}
+                                                            className="flex-1 md:w-32 py-3 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-sm"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(b._id, 'cancelled')}
+                                                            className="flex-1 md:w-32 py-3 bg-rose-50 text-rose-600 font-black rounded-xl hover:bg-rose-100 transition-all text-sm border border-rose-100"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {b.status === 'confirmed' && (
+                                                    <button 
+                                                        onClick={() => handleStatusUpdate(b._id, 'cancelled')}
+                                                        className="w-full md:w-32 py-3 bg-slate-50 text-slate-400 font-bold rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="bg-white p-20 rounded-[2.5rem] border border-dashed border-slate-200 text-center text-slate-400 font-medium">
+                                        No booking requests received yet.
                                     </div>
                                 )}
                             </div>

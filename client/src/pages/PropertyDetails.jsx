@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import MapView from '../components/MapView';
 import {
     MapPin, Home, Star, Wifi, Car, Trees, Droplets, Shield,
-    Send, Heart, CheckCircle, Navigation, Info, School, Building2, ShoppingBag, Utensils, Sparkles, Key
+    Send, Heart, CheckCircle, Navigation, Info, School, Building2, ShoppingBag, Utensils, Sparkles, Key, CreditCard, DollarSign
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +19,7 @@ const PropertyDetails = () => {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('onsite');
 
     // Airbnb Features State
     const [startDate, setStartDate] = useState('');
@@ -74,13 +75,34 @@ const PropertyDetails = () => {
         if (!user) return toast.error('Please login to rent this property');
         if (!startDate || !endDate) return toast.error('Please select check-in and check-out dates');
 
+        const nights = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+        if (nights <= 0) return toast.error('Check-out date must be after check-in date');
+
+        const basePrice = calculateTotal();
+        const discount = nights >= 7 ? basePrice * 0.1 : 0;
+        const total = basePrice + 75 - discount; // 75 is cleaning + service fee
+
         setSending(true);
         try {
-            await api.post('/contact/rent', { propertyId: id });
-            toast.success('Property rented successfully! Owner notified.');
-            setProperty({ ...property, isRented: true });
+            const { data: booking } = await api.post('/bookings', {
+                propertyId: id,
+                startDate,
+                endDate,
+                totalPrice: total,
+                paymentMethod
+            });
+
+            if (paymentMethod === 'stripe') {
+                const { data: session } = await api.post('/payments/create-session', {
+                    bookingId: booking._id
+                });
+                window.location.href = session.url;
+            } else {
+                toast.success('Booking requested successfully! Pay on arrival confirmed.');
+                navigate('/dashboard');
+            }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to rent property');
+            toast.error(error.response?.data?.message || 'Failed to create booking');
         }
         setSending(false);
     };
@@ -338,6 +360,16 @@ const PropertyDetails = () => {
                                             <p className="text-red-700/70 text-sm font-medium mt-1">Check back later for availability</p>
                                         </div>
                                     </div>
+                                ) : user?.role === 'host' ? (
+                                    <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl text-center space-y-4">
+                                        <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                                            <Home className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-extrabold text-blue-900 text-xl tracking-tight">Host View</h4>
+                                            <p className="text-blue-700/70 text-sm font-medium mt-1">You are viewing this as a Host. Guests can book this property using the reserve tool.</p>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="space-y-4">
                                         <div className="border border-slate-400 rounded-xl overflow-hidden">
@@ -375,6 +407,26 @@ const PropertyDetails = () => {
                                             </div>
                                         </div>
 
+                                        <div className="space-y-4 pt-4 border-t border-slate-100">
+                                            <label className="text-sm font-black text-slate-900 uppercase tracking-widest ml-1">Payment Method</label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button
+                                                    onClick={() => setPaymentMethod('onsite')}
+                                                    className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'onsite' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 text-slate-500 hover:border-blue-200'}`}
+                                                >
+                                                    <DollarSign className="w-6 h-6" />
+                                                    <span className="text-xs font-bold">On-site Payment</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setPaymentMethod('stripe')}
+                                                    className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'stripe' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 text-slate-500 hover:border-blue-200'}`}
+                                                >
+                                                    <CreditCard className="w-6 h-6" />
+                                                    <span className="text-xs font-bold">Credit Card</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         <button
                                             onClick={handleRentProperty}
                                             disabled={sending}
@@ -383,7 +435,7 @@ const PropertyDetails = () => {
                                             {sending ? (
                                                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
                                             ) : (
-                                                'Reserve'
+                                                paymentMethod === 'stripe' ? 'Pay & Reserve' : 'Reserve'
                                             )}
                                         </button>
 
